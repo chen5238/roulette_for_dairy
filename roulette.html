@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ルーレット 1〜12</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      color: #fff;
+      overflow: hidden; /* Teams内でのスクロール抑制 */
+    }
+    h1 {
+      font-size: 1.5rem;
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+      text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+    }
+    #wheelContainer {
+      position: relative;
+      width: 90vw;
+      max-width: 450px;
+      aspect-ratio: 1/1;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 5px 25px rgba(0, 0, 0, 0.6));
+    }
+    #spinBtn {
+      margin-top: 20px;
+      padding: 12px 50px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 50px;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #spinBtn:disabled { opacity: 0.5; }
+    #result {
+      margin-top: 15px;
+      font-size: 1.2rem;
+      height: 60px;
+    }
+    .number {
+      font-size: 3rem;
+      font-weight: bold;
+      color: #FFD700;
+      text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+    }
+  </style>
+</head>
+<body>
+  <h1>🎰 ルーレット 1〜12</h1>
+  <div id="wheelContainer">
+    <canvas id="wheel" width="500" height="520"></canvas>
+  </div>
+  <button id="spinBtn">スピン！</button>
+  <div id="result"></div>
+
+  <script>
+  (() => {
+    const canvas = document.getElementById('wheel');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const cx = W / 2, cy = H / 2 + 10, R = 210, N = 12, DA = (2 * Math.PI) / N;
+    const COLORS = ['#E74C3C','#E67E22','#F39C12','#F1C40F','#27AE60','#1ABC9C','#2980B9','#3498DB','#8E44AD','#9B59B6','#D35400','#C0392B'];
+    let rot = -Math.PI / 2 - DA / 2, spinning = false;
+
+    function drawWheel(angle) {
+      ctx.clearRect(0, 0, W, H);
+      for (let i = 0; i < N; i++) {
+        const a0 = angle + i * DA, a1 = a0 + DA;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, R, a0, a1);
+        ctx.fillStyle = COLORS[i];
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.stroke();
+      }
+      for (let i = 0; i < N; i++) {
+        const mid = angle + i * DA + DA / 2;
+        ctx.save();
+        ctx.translate(cx + R * 0.7 * Math.cos(mid), cy + R * 0.7 * Math.sin(mid));
+        ctx.rotate(mid + Math.PI / 2);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 24px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(i + 1, 0, 8);
+        ctx.restore();
+      }
+      // ポインタ
+      ctx.fillStyle = '#FFD700';
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - R + 5);
+      ctx.lineTo(cx - 15, cy - R - 20);
+      ctx.lineTo(cx + 15, cy - R - 20);
+      ctx.fill();
+    }
+
+    function spin() {
+      if (spinning) return;
+      spinning = true;
+      document.getElementById('spinBtn').disabled = true;
+      document.getElementById('result').innerHTML = '';
+      const idx = Math.floor(Math.random() * N);
+      const targetBase = -Math.PI / 2 - idx * DA - DA / 2;
+      const curNorm = ((rot % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+      let delta = (((targetBase % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) - curNorm;
+      if (delta <= 0) delta += 2 * Math.PI;
+      const finalRot = rot + (8 * Math.PI * 2) + delta;
+      const startRot = rot, duration = 4000;
+      let start = null;
+
+      function frame(ts) {
+        if (!start) start = ts;
+        const t = Math.min((ts - start) / duration, 1);
+        const ease = 1 - Math.pow(1 - t, 4);
+        rot = startRot + (finalRot - startRot) * ease;
+        drawWheel(rot);
+        if (t < 1) requestAnimationFrame(frame);
+        else {
+          spinning = false;
+          document.getElementById('spinBtn').disabled = false;
+          document.getElementById('result').innerHTML = `結果：<span class="number">${idx + 1}</span>`;
+        }
+      }
+      requestAnimationFrame(frame);
+    }
+    document.getElementById('spinBtn').addEventListener('click', spin);
+    drawWheel(rot);
+  })();
+  </script>
+</body>
+</html>
