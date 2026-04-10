@@ -161,7 +161,7 @@
         ctx.textBaseline = 'middle';
         ctx.shadowColor = 'rgba(0,0,0,0.5)';
         ctx.shadowBlur = 3;
-        const label = String(i + 2);
+        const label = String(i + 1);
         ctx.strokeText(label, 0, 0);
         ctx.fillText(label, 0, 0);
         ctx.restore();
@@ -185,7 +185,7 @@
       if (relative < 0) relative += Math.PI * 2;
 
       const index = Math.floor(relative / arc) % segments;
-      return index + 2;
+      return index + 1;
     }
 
     function spin() {
@@ -210,14 +210,14 @@
         const t = Math.min((now - startTime) / duration, 1);
         const eased = 1 - Math.pow(1 - t, 4);
         angle = startAngle + (targetAngle - startAngle) * eased;
-        drawWheel(fixedSegments - 1);
+        drawWheel(fixedSegments);
 
         if (t < 1) {
           requestAnimationFrame(animate);
           return;
         }
 
-        const winner = getWinningNumber(fixedSegments - 1);
+        const winner = getWinningNumber(fixedSegments);
         result.innerHTML = `最終決定: <span class="number">${winner}</span>`;
         isSpinning = false;
         segInput.disabled = false;
@@ -230,14 +230,14 @@
     segInput.addEventListener('input', () => {
       if (isSpinning) return;
       const segments = sanitizeSegments(segInput.value);
-      drawWheel(segments - 1);
+      drawWheel(segments);
       result.textContent = '';
     });
 
     spinBtn.addEventListener('click', spin);
 
     segInput.value = '12';
-    drawWheel(11);
+    drawWheel(12);
   });
   </script>
 </body>
