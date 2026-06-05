@@ -2,243 +2,615 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>可変ルーレット</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>出席者チェッカー / ルーレット</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-start: #0f172a;
+      --bg-end: #1e293b;
+      --panel: rgba(255, 255, 255, 0.92);
+      --panel-soft: rgba(255, 255, 255, 0.14);
+      --text: #0f172a;
+      --muted: #475569;
+      --accent: #f97316;
+      --accent-strong: #ea580c;
+      --accent-soft: #ffedd5;
+      --success: #15803d;
+      --danger: #dc2626;
+      --shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
     body {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      margin: 0;
       min-height: 100vh;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-family: "Segoe UI", "Hiragino Sans", "Yu Gothic UI", sans-serif;
       color: #fff;
+      background:
+        radial-gradient(circle at top left, rgba(249, 115, 22, 0.28), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.22), transparent 28%),
+        linear-gradient(160deg, var(--bg-start), var(--bg-end));
+      padding: 24px;
     }
-    .controls {
-      background: rgba(255, 255, 255, 0.1);
-      padding: 15px 25px;
-      border-radius: 15px;
+
+    .app-shell {
+      width: min(1080px, 100%);
+      margin: 0 auto;
+    }
+
+    .hero {
       margin-bottom: 20px;
+      padding: 28px;
+      border-radius: 28px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06));
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      backdrop-filter: blur(14px);
+      box-shadow: var(--shadow);
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      letter-spacing: 0.04em;
+    }
+
+    .hero p {
+      margin: 10px 0 0;
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 1rem;
+    }
+
+    .tabs {
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-      backdrop-filter: blur(5px);
+      gap: 12px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
     }
-    input[type="number"] {
-      width: 80px;
-      padding: 10px;
-      border-radius: 8px;
-      border: 2px solid #f5576c;
-      font-size: 1.2rem;
-      text-align: center;
-      background: #fff;
-      color: #333;
+
+    .tab-button {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      padding: 12px 18px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 700;
+      transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
     }
-    h1 {
-      font-size: 1.5rem;
-      margin-bottom: 10px;
-      text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+
+    .tab-button:hover {
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.14);
     }
-    #wheelContainer {
-      position: relative;
-      width: 85vw;
-      max-width: 420px;
-      aspect-ratio: 1/1;
+
+    .tab-button.is-active {
+      background: linear-gradient(135deg, #fb923c, #f97316);
+      border-color: transparent;
+      box-shadow: 0 14px 30px rgba(249, 115, 22, 0.34);
+    }
+
+    .panel {
+      display: none;
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 28px;
+      padding: 28px;
+      box-shadow: var(--shadow);
+      animation: fade-in 0.28s ease;
+    }
+
+    .panel.is-active {
       display: block;
     }
-    canvas { 
-      width: 100%; 
-      height: 100%; 
-      filter: drop-shadow(0 5px 25px rgba(0, 0, 0, 0.6)); 
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
     }
-    #spinBtn {
-      margin-top: 20px;
-      padding: 14px 60px;
-      font-size: 1.3rem;
-      font-weight: bold;
+
+    .panel-header h2 {
+      margin: 0;
+      font-size: 1.8rem;
+    }
+
+    .panel-header p {
+      margin: 6px 0 0;
+      color: var(--muted);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    textarea,
+    input[type="number"] {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 16px;
+      padding: 14px 16px;
+      font-size: 1rem;
+      color: var(--text);
+      background: #fff;
+    }
+
+    textarea {
+      min-height: 180px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    .primary-button {
+      appearance: none;
       border: none;
-      border-radius: 50px;
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      border-radius: 16px;
+      padding: 14px 20px;
+      font-size: 1rem;
+      font-weight: 700;
       color: #fff;
+      background: linear-gradient(135deg, #0ea5e9, #2563eb);
       cursor: pointer;
-      box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
-      transition: transform 0.1s;
+      box-shadow: 0 14px 28px rgba(37, 99, 235, 0.22);
     }
-    #spinBtn:active { transform: scale(0.95); }
-    #spinBtn:disabled, input:disabled { opacity: 0.5; cursor: not-allowed; }
-    #result { margin-top: 15px; font-size: 1.2rem; height: 60px; text-align: center; }
-    .number { font-size: 3rem; font-weight: bold; color: #FFD700; text-shadow: 0 0 20px rgba(255, 215, 0, 0.8); }
+
+    .primary-button:hover {
+      filter: brightness(1.03);
+    }
+
+    .result-container {
+      margin-top: 24px;
+      padding: 18px;
+      background: #f8fafc;
+      border-left: 5px solid var(--danger);
+      border-radius: 18px;
+    }
+
+    .result-title {
+      font-weight: 700;
+      color: #b91c1c;
+      margin-bottom: 10px;
+    }
+
+    .no-absentees {
+      margin: 0;
+      color: var(--success);
+      font-weight: 700;
+    }
+
+    .result-container ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .result-container li {
+      margin-bottom: 5px;
+    }
+
+    .roulette-layout {
+      display: grid;
+      gap: 22px;
+    }
+
+    .controls {
+      background: linear-gradient(135deg, #fff7ed, #ffedd5);
+      border: 1px solid #fed7aa;
+      padding: 20px;
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 240px;
+    }
+
+    .controls input[type="number"] {
+      text-align: center;
+      font-size: 1.2rem;
+      border-radius: 12px;
+    }
+
+    #wheelContainer {
+      position: relative;
+      width: min(100%, 460px);
+      aspect-ratio: 1 / 1;
+      margin: 0 auto;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 14px 28px rgba(15, 23, 42, 0.24));
+    }
+
+    .roulette-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    #spinBtn {
+      appearance: none;
+      border: none;
+      border-radius: 999px;
+      padding: 14px 54px;
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #fff;
+      background: linear-gradient(135deg, #f97316, #ef4444);
+      cursor: pointer;
+      box-shadow: 0 14px 28px rgba(239, 68, 68, 0.22);
+    }
+
+    #spinBtn:disabled,
+    input:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    #result {
+      min-height: 52px;
+      text-align: center;
+      font-size: 1.1rem;
+      color: #334155;
+    }
+
+    .number {
+      font-size: 2.8rem;
+      font-weight: 800;
+      color: #ea580c;
+    }
+
+    @keyframes fade-in {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 16px;
+      }
+
+      .hero,
+      .panel {
+        padding: 20px;
+        border-radius: 22px;
+      }
+
+      .tab-button {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .controls {
+        max-width: none;
+      }
+
+      #spinBtn {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
+  <main class="app-shell">
 
-  <h1>🎰 カスタムルーレット</h1>
+    <nav class="tabs" aria-label="機能切り替え">
+      <button class="tab-button is-active" type="button" data-tab-target="attendance-panel">出席者チェッカー</button>
+      <button class="tab-button" type="button" data-tab-target="roulette-panel">ルーレット</button>
+    </nav>
 
-  <div class="controls">
-    <label for="segInput">参加人数 (2〜50):</label>
-    <input type="number" id="segInput" value="12" min="2" max="50">
-  </div>
+    <section class="panel is-active" id="attendance-panel" data-tab-panel>
+      <div class="panel-header">
+        <div>
+          <h2>出席者チェッカー</h2>
+          <p>Teams会議の参加者リストをコピーしここに貼り付けたら、固定メンバーに対する欠席者を抽出します。</p>
+        </div>
+      </div>
 
-  <div id="wheelContainer">
-    <canvas id="wheel" width="500" height="520"></canvas>
-  </div>
+      <div class="form-group">
+        <label for="attendanceInput">出席者・テキスト入力領域</label>
+        <textarea id="attendanceInput" placeholder="出席者のリストをコピーしてここに添付してください"></textarea>
+      </div>
 
-  <button id="spinBtn">スピン！</button>
-  <div id="result"></div>
+      <button class="primary-button" id="attendanceCheckBtn" type="button">欠席者をチェックする</button>
+
+      <div class="result-container" id="resultContainer" hidden>
+        <div class="result-title" id="resultTitle">欠席者一覧</div>
+        <div id="resultOutput"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="roulette-panel" data-tab-panel>
+      <div class="panel-header">
+        <div>
+          <h2>可変ルーレット</h2>
+          <p>参加人数を入力し、既存ロジックのままルーレットを回します。</p>
+        </div>
+        <span class="badge">2〜50人対応</span>
+      </div>
+
+      <div class="roulette-layout">
+        <div class="controls">
+          <label for="segInput">参加人数 (2〜50):</label>
+          <input type="number" id="segInput" value="12" min="2" max="50">
+        </div>
+
+        <div id="wheelContainer">
+          <canvas id="wheel" width="500" height="520"></canvas>
+        </div>
+
+        <div class="roulette-actions">
+          <button id="spinBtn" type="button">スピン！</button>
+          <div id="result"></div>
+        </div>
+      </div>
+    </section>
+  </main>
 
   <script>
-  window.addEventListener('DOMContentLoaded', () => {
-    const canvas = document.getElementById('wheel');
-    const ctx = canvas.getContext('2d');
-    const segInput = document.getElementById('segInput');
-    const spinBtn = document.getElementById('spinBtn');
-    const result = document.getElementById('result');
+    window.addEventListener('DOMContentLoaded', () => {
+      const tabs = document.querySelectorAll('[data-tab-target]');
+      const panels = document.querySelectorAll('[data-tab-panel]');
 
-    const cx = canvas.width / 2;
-    const cy = canvas.width / 2;
-    const radius = canvas.width * 0.45;
-    let angle = -Math.PI / 2;
-    let isSpinning = false;
+      tabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+          const targetId = tab.dataset.tabTarget;
 
-    const palette = [
-      '#ff6b6b', '#feca57', '#48dbfb', '#1dd1a1', '#5f27cd',
-      '#ff9f43', '#54a0ff', '#00d2d3', '#ee5253', '#10ac84',
-      '#341f97', '#ff7f50', '#2ecc71', '#9b59b6', '#e67e22'
-    ];
+          tabs.forEach((button) => {
+            button.classList.toggle('is-active', button === tab);
+          });
 
-    function sanitizeSegments(value) {
-      const n = Number(value);
-      if (!Number.isFinite(n)) return 12;
-      return Math.min(50, Math.max(2, Math.floor(n)));
-    }
+          panels.forEach((panel) => {
+            panel.classList.toggle('is-active', panel.id === targetId);
+          });
+        });
+      });
 
-    function drawPointer() {
-      const topY = cy - radius - 8;
-      ctx.fillStyle = '#ffd700';
-      ctx.beginPath();
-      ctx.moveTo(cx, topY - 20);
-      ctx.lineTo(cx - 14, topY + 8);
-      ctx.lineTo(cx + 14, topY + 8);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
+      const members = [
+        '鈴木　友崇',
+        '伊田　浩貴',
+        '山本　崇靖',
+        '吉田　悠人',
+        '木嶋　友香',
+        '黒田　翔太',
+        '戸田　優香',
+        '陳　世雄',
+        '草野　祐輔',
+        '橋本　司',
+        '本長谷　将太',
+        '今井　柚杜'
+      ];
 
-    function drawWheel(segments) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const attendanceInput = document.getElementById('attendanceInput');
+      const attendanceCheckBtn = document.getElementById('attendanceCheckBtn');
+      const resultContainer = document.getElementById('resultContainer');
+      const resultTitle = document.getElementById('resultTitle');
+      const resultOutput = document.getElementById('resultOutput');
 
-      const arc = (Math.PI * 2) / segments;
+      attendanceCheckBtn.addEventListener('click', () => {
+        const inputText = attendanceInput.value;
+        const normalizedInput = inputText.replace(/[\s ]/g, '');
 
-      for (let i = 0; i < segments; i++) {
-        const start = angle + i * arc;
-        const end = start + arc;
-        const mid = start + arc / 2;
+        const absentees = members.filter((member) => {
+          const normalizedMember = member.replace(/[\s ]/g, '');
+          return !normalizedInput.includes(normalizedMember);
+        });
 
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.arc(cx, cy, radius, start, end);
-        ctx.closePath();
-        ctx.fillStyle = palette[i % palette.length];
-        ctx.fill();
+        resultContainer.hidden = false;
+        resultOutput.innerHTML = '';
 
-        const labelRadius = radius * 0.7;
-        const labelX = cx + Math.cos(mid) * labelRadius;
-        const labelY = cy + Math.sin(mid) * labelRadius;
-
-        ctx.save();
-        ctx.translate(labelX, labelY);
-        ctx.rotate(mid + Math.PI / 2);
-        ctx.fillStyle = '#fff';
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
-        ctx.lineWidth = 3;
-        ctx.font = 'bold 26px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.shadowColor = 'rgba(0,0,0,0.5)';
-        ctx.shadowBlur = 3;
-        const label = String(i + 2);
-        ctx.strokeText(label, 0, 0);
-        ctx.fillText(label, 0, 0);
-        ctx.restore();
-      }
-
-      ctx.beginPath();
-      ctx.arc(cx, cy, radius * 0.12, 0, Math.PI * 2);
-      ctx.fillStyle = '#fff';
-      ctx.fill();
-
-      drawPointer();
-    }
-
-    function getWinningNumber(segments) {
-      const arc = (Math.PI * 2) / segments;
-      let normalized = angle % (Math.PI * 2);
-      if (normalized < 0) normalized += Math.PI * 2;
-
-      const pointerAt = -Math.PI / 2;
-      let relative = (pointerAt - normalized) % (Math.PI * 2);
-      if (relative < 0) relative += Math.PI * 2;
-
-      const index = Math.floor(relative / arc) % segments;
-      return index + 2;
-    }
-
-    function spin() {
-      if (isSpinning) return;
-
-      const fixedSegments = sanitizeSegments(segInput.value);
-      segInput.value = String(fixedSegments);
-
-      isSpinning = true;
-      segInput.disabled = true;
-      spinBtn.disabled = true;
-      result.textContent = '回転中…';
-
-      const startAngle = angle;
-      const extraTurns = 6 + Math.random() * 2;
-      const targetOffset = Math.random() * Math.PI * 2;
-      const targetAngle = startAngle + extraTurns * Math.PI * 2 + targetOffset;
-      const duration = 4200;
-      const startTime = performance.now();
-
-      function animate(now) {
-        const t = Math.min((now - startTime) / duration, 1);
-        const eased = 1 - Math.pow(1 - t, 4);
-        angle = startAngle + (targetAngle - startAngle) * eased;
-        drawWheel(fixedSegments - 1);
-
-        if (t < 1) {
-          requestAnimationFrame(animate);
+        if (absentees.length === 0) {
+          resultTitle.textContent = 'チェック結果';
+          resultOutput.innerHTML = '<p class="no-absentees">全員出席しています！</p>';
+          resultContainer.style.borderLeftColor = '#15803d';
+          resultTitle.style.color = '#15803d';
           return;
         }
 
-        const winner = getWinningNumber(fixedSegments - 1);
-        result.innerHTML = `最終決定: <span class="number">${winner}</span>`;
-        isSpinning = false;
-        segInput.disabled = false;
-        spinBtn.disabled = false;
+        resultTitle.textContent = '欠席者一覧 (' + absentees.length + '名)';
+        resultContainer.style.borderLeftColor = '#dc2626';
+        resultTitle.style.color = '#b91c1c';
+
+        const list = document.createElement('ul');
+        absentees.forEach((name) => {
+          const item = document.createElement('li');
+          item.textContent = name;
+          list.appendChild(item);
+        });
+        resultOutput.appendChild(list);
+      });
+
+      const canvas = document.getElementById('wheel');
+      const ctx = canvas.getContext('2d');
+      const segInput = document.getElementById('segInput');
+      const spinBtn = document.getElementById('spinBtn');
+      const rouletteResult = document.getElementById('result');
+
+      const cx = canvas.width / 2;
+      const cy = canvas.width / 2;
+      const radius = canvas.width * 0.45;
+      let angle = -Math.PI / 2;
+      let isSpinning = false;
+
+      const palette = [
+        '#ff6b6b', '#feca57', '#48dbfb', '#1dd1a1', '#5f27cd',
+        '#ff9f43', '#54a0ff', '#00d2d3', '#ee5253', '#10ac84',
+        '#341f97', '#ff7f50', '#2ecc71', '#9b59b6', '#e67e22'
+      ];
+
+      function sanitizeSegments(value) {
+        const count = Number(value);
+        if (!Number.isFinite(count)) {
+          return 12;
+        }
+        return Math.min(50, Math.max(2, Math.floor(count)));
       }
 
-      requestAnimationFrame(animate);
-    }
+      function drawPointer() {
+        const topY = cy - radius - 8;
+        ctx.fillStyle = '#ffd700';
+        ctx.beginPath();
+        ctx.moveTo(cx, topY - 20);
+        ctx.lineTo(cx - 14, topY + 8);
+        ctx.lineTo(cx + 14, topY + 8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
 
-    segInput.addEventListener('input', () => {
-      if (isSpinning) return;
-      const segments = sanitizeSegments(segInput.value);
-      drawWheel(segments - 1);
-      result.textContent = '';
+      function drawWheel(segments) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const arc = (Math.PI * 2) / segments;
+
+        for (let i = 0; i < segments; i += 1) {
+          const start = angle + i * arc;
+          const end = start + arc;
+          const mid = start + arc / 2;
+
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.arc(cx, cy, radius, start, end);
+          ctx.closePath();
+          ctx.fillStyle = palette[i % palette.length];
+          ctx.fill();
+
+          const labelRadius = radius * 0.7;
+          const labelX = cx + Math.cos(mid) * labelRadius;
+          const labelY = cy + Math.sin(mid) * labelRadius;
+
+          ctx.save();
+          ctx.translate(labelX, labelY);
+          ctx.rotate(mid + Math.PI / 2);
+          ctx.fillStyle = '#fff';
+          ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
+          ctx.lineWidth = 3;
+          ctx.font = 'bold 26px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.shadowColor = 'rgba(0,0,0,0.5)';
+          ctx.shadowBlur = 3;
+          const label = String(i + 2);
+          ctx.strokeText(label, 0, 0);
+          ctx.fillText(label, 0, 0);
+          ctx.restore();
+        }
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius * 0.12, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+
+        drawPointer();
+      }
+
+      function getWinningNumber(segments) {
+        let normalized = angle % (Math.PI * 2);
+        if (normalized < 0) {
+          normalized += Math.PI * 2;
+        }
+
+        const pointerAt = -Math.PI / 2;
+        let relative = (pointerAt - normalized) % (Math.PI * 2);
+        if (relative < 0) {
+          relative += Math.PI * 2;
+        }
+
+        const arc = (Math.PI * 2) / segments;
+        const index = Math.floor(relative / arc) % segments;
+        return index + 2;
+      }
+
+      function spin() {
+        if (isSpinning) {
+          return;
+        }
+
+        const fixedSegments = sanitizeSegments(segInput.value);
+        segInput.value = String(fixedSegments);
+
+        isSpinning = true;
+        segInput.disabled = true;
+        spinBtn.disabled = true;
+        rouletteResult.textContent = '回転中…';
+
+        const startAngle = angle;
+        const extraTurns = 6 + Math.random() * 2;
+        const targetOffset = Math.random() * Math.PI * 2;
+        const targetAngle = startAngle + extraTurns * Math.PI * 2 + targetOffset;
+        const duration = 4200;
+        const startTime = performance.now();
+
+        function animate(now) {
+          const t = Math.min((now - startTime) / duration, 1);
+          const eased = 1 - Math.pow(1 - t, 4);
+          angle = startAngle + (targetAngle - startAngle) * eased;
+          drawWheel(fixedSegments - 1);
+
+          if (t < 1) {
+            requestAnimationFrame(animate);
+            return;
+          }
+
+          const winner = getWinningNumber(fixedSegments - 1);
+          rouletteResult.innerHTML = '最終決定: <span class="number">' + winner + '</span>';
+          isSpinning = false;
+          segInput.disabled = false;
+          spinBtn.disabled = false;
+        }
+
+        requestAnimationFrame(animate);
+      }
+
+      segInput.addEventListener('input', () => {
+        if (isSpinning) {
+          return;
+        }
+
+        const segments = sanitizeSegments(segInput.value);
+        drawWheel(segments - 1);
+        rouletteResult.textContent = '';
+      });
+
+      spinBtn.addEventListener('click', spin);
+
+      segInput.value = '12';
+      drawWheel(11);
     });
-
-    spinBtn.addEventListener('click', spin);
-
-    segInput.value = '12';
-    drawWheel(11);
-  });
   </script>
 </body>
 </html>
